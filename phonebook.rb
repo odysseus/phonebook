@@ -100,7 +100,7 @@ end
 
 def reverse_lookup number, filename
   pb = Phonebook.init_from_file(filename)
-  pb.reverse(number)
+  pb.reverse_lookup(number)
 end
 
 def add name, number, filename
@@ -123,6 +123,21 @@ def main
     args.push(item)
   end
 
+  puts "\n"
+
+  if !(args[-1] =~ /pb/)
+    files = Dir.entries(".").select { |f| f =~ /pb/ }
+    if files.length == 1
+      args.push(files[0])
+    elsif files.length > 1
+      puts "Multiple .pb files found and none specified, please specify .pb file as the last argument\n\n"
+      return -1
+    else
+      puts "No .pb files found, create a new phonebook using $ phonebook create <filename>.pb\n\n"
+      return -1
+    end
+  end
+
   case args[0]
   when "create"
     puts createpb(args[1])
@@ -135,6 +150,8 @@ def main
   when "reverse"
     puts reverse_lookup(args[1], args[2])
   end
+
+  puts "\n"
 end
 
 main
