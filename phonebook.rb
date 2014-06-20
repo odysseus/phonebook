@@ -16,6 +16,7 @@ require 'json'
 #     err on no phonebook
 #     err on not found
 
+# Class to encapsulate phonebook functionality
 class Phonebook
 
   attr_accessor :book
@@ -87,6 +88,7 @@ class Phonebook
 
 end
 
+# The Do-er functions to create the object and perform the actions requested
 def createpb filename
   return "Phonebook already exists" if File.file?(filename)
   pb = Phonebook.new
@@ -117,6 +119,7 @@ def remove name, filename
   return status
 end
 
+# Main Method, processing args
 def main
   args = []
   ARGV.each do |item|
@@ -125,6 +128,14 @@ def main
 
   puts "\n"
 
+  commands = ["create", "lookup", "add", "remove", "reverse"]
+  if not commands.include?(args[0])
+    puts "Invalid argument, valid arguments are: (create lookup add remove reverse)\n\n"
+    return -1
+  end
+
+  # If there is only one .pb file in the current directory, that is the
+  # implicit argument
   if !(args[-1] =~ /pb/)
     files = Dir.entries(".").select { |f| f =~ /pb/ }
     if files.length == 1
@@ -138,6 +149,25 @@ def main
     end
   end
 
+  num_args = {"create"=> 2, "lookup"=> 3, "add"=> 4, "remove"=> 3, "reverse"=> 3}
+  needed_args = num_args[args[0]]
+  if args.count != needed_args
+    if args.count > needed_args
+      puts "Too many arguments passed to #{args[0]}\n\n"
+    else
+      puts "Too few arguments passed to #{args[0]}\n\n"
+    end
+    return -1
+  end
+
+  # Check for file existence, if the .pb is not found in the current directory
+  # output an error and halt the program
+  if !(File.file?(args[-1]))
+    puts "#{args[-1]} not found in the current directory, check for typos or create it using $ phonebook create <filename>\n\n"
+    return -1
+  end
+
+  # Filename exists
   case args[0]
   when "create"
     puts createpb(args[1])
