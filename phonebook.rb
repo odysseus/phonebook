@@ -44,12 +44,12 @@ class Phonebook
   end
 
   def add name, number
-    if !@book.has_key?(name)
+    if !@book.has_key?(name) and !@book["reverse"].has_key?(number)
       @book[name] = number
       @book["reverse"][number] = name
       return "#{name} : #{number} added"
     else
-      return "#{name} already exists"
+      return "#{name} or #{number} already exists"
     end
   end
 
