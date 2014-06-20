@@ -15,7 +15,7 @@ class TestPhonebook < MiniTest::Test
       File.delete(file) if File.file?(file)
     end
 
-    describe "Before the pb file has been created" do
+    describe "Before the phonebook file has been created" do
 
       before do
         File.delete(file) if File.file?(file)
@@ -82,9 +82,20 @@ class TestPhonebook < MiniTest::Test
         r.must_match(success)
       end
 
-      it "should not allow insertion of duplicate entries" do
+      it "should not allow insertion of duplicate names" do
         Phonebook.process_request(["add", "dave", "123", file])
-        r = Phonebook.process_request(["add", "dave", "123", file])
+        r = Phonebook.process_request(["add", "dave", "321", file])
+        r.must_match(error)
+      end
+
+      it "should not allow insertion of duplicate numbers" do
+        Phonebook.process_request(["add", "sarah", "4567", file])
+        r = Phonebook.process_request(["add", "kate", "4567", file])
+        r.must_match(error)
+      end
+
+      it "should respond with an error when using non-spec commands" do
+        r = Phonebook.process_request(["insert", "rebecca", "456", file])
         r.must_match(error)
       end
 
@@ -127,11 +138,7 @@ class TestPhonebook < MiniTest::Test
           end
 
         end
-
       end
-
     end
-
   end
-
 end

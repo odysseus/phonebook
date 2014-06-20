@@ -28,7 +28,9 @@ module Phonebook
   # Adds an entry to the phonebook with the given name and number
   def add name, number, filename
     data = getdata(filename)
-    if not data["names"].has_key?(name)
+    uniquename = !data["names"].has_key?(name)
+    uniquenum = !data["numbers"].has_key?(number)
+    if uniquename and uniquenum
       data["names"][name] = number
       data["namelist"].push(name)
       data["numlist"].push(number)
@@ -36,7 +38,11 @@ module Phonebook
       data.write_json(filename)
       return "Success: Added #{name} - #{number}"
     else
-      return "Error: #{name} already exists"
+      if not uniquename
+        return "Error: #{name} already exists"
+      else
+        return "Error: #{number} already exists"
+      end
     end
   end
 
