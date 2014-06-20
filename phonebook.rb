@@ -1,147 +1,82 @@
+require 'active_support/inflector'
 require 'json'
 
-# Args needed to implement:
-# create <filename> -- creates a new phonebook
-#     err if exists
-# lookup <name> <phonebook> -- Finds a person in the phonebook
-#     err on not found
-#     err on no phonebook
-# add <name> <number> <phonebook> -- Adds a person to the book
-#     err on dupe
-#     err on no phonebook
-# change <name> <number> <phonebook> -- Changes the number
-#     err on not found
-#     err on no phonebook
-# remove <name> <phonebook>
-#     err if not exists
-#     err on no phonebook
-# reverse-lookup <number> <phonebook>
-#     err on no phonebook
-#     err on not found
-
-# Class to encapsulate phonebook functionality
-class Phonebook
-
-  attr_accessor :book
-
-  def initialize
-    @book = {}
-    @book["reverse"] = {}
+class Hash
+  def write_json filename
+    File.write(filename, self.to_json)
   end
-
-  def self.init_from_file filename
-    if File.file?(filename)
-      pb = Phonebook.new
-      pb.book = JSON.parse(File.read(filename))
-      return pb
-    else
-      return "File not found"
-    end
-  end
-
-  def read_from filename
-    @book = JSON.parse(File.read(filename))
-  end
-
-  def add name, number
-    if !@book.has_key?(name) and !@book["reverse"].has_key?(number)
-      @book[name] = number
-      @book["reverse"][number] = name
-      return "#{name} : #{number} added"
-    else
-      return "#{name} or #{number} already exists"
-    end
-  end
-
-  def remove name
-    if @book.has_key?(name)
-      number = @book[name]
-      @book.delete(name)
-      @book["reverse"].delete(number)
-      return "#{name} removed"
-    else
-      return "#{name} not found"
-    end
-  end
-
-  def lookup name
-    if @book.has_key?(name)
-      @book[name]
-    else
-      "#{name} not found"
-    end
-  end
-
-  def reverse_lookup number
-    if @book["reverse"].has_key?(number)
-      @book["reverse"][number]
-    else
-      "#{number} not found"
-    end
-  end
-
-  def change name, number
-    if @book.has_key?(name)
-      @book[name] = number
-      @book["reverse"].delete(number)
-      @book["reverse"][number] = name
-      return "#{name} updated"
-    else
-      return "Change failed #{name} not found"
-    end
-  end
-
-  def create filename
-    if !File.file?(filename)
-      File.open(filename, "w") { |f| f.write(@book.to_json) }
-      return "Phonebook created"
-    else
-      return "Already exists"
-    end
-  end
-
 end
 
-# The Do-er functions to create the object and perform the actions requested
-def createpb filename
-  return "Phonebook already exists" if File.file?(filename)
-  pb = Phonebook.new
-  pb.create(filename)
+def getdata filename
+  JSON.parse(File.read(filename))
 end
 
-def lookup name, filename
-  pb = Phonebook.init_from_file(filename)
-  pb.lookup(name)
-end
-
-def reverse_lookup number, filename
-  pb = Phonebook.init_from_file(filename)
-  pb.reverse_lookup(number)
+def create filename
+  if not File.file?(filename)
+    data = {"names" => {}, "numbers" => {}, "namelist" => [], "numlist" => []}
+    data.write_json(filename)
+    return "Created #{filename}"
+  else
+    return "File already exists, delete file or use add / remove / change to modify"
+  end
 end
 
 def add name, number, filename
-  pb = Phonebook.init_from_file(filename)
-  status = pb.add(name, number)
-  File.write(filename, pb.book.to_json)
-  return status
-end
-
-def change name, number, filename
-  pb = Phonebook.init_from_file(filename)
-  status = pb.change(name, number)
-  File.write(filename, pb.book.to_json)
-  return status
+  data = getdata(filename)
+  if not data["names"].has_key?(name)
+    data["names"][name] = number
+    data["namelist"].push(name)
+    data["numlist"].push(number)
+    data["numbers"][number] = name
+    data.write_json(filename)
+    return "Added #{name} : #{number}"
+  else
+    return "#{name} already exists"
+  end
 end
 
 def remove name, filename
-  pb = Phonebook.init_from_file(filename)
-  status = pb.remove(name)
-  File.write(filename, pb.book.to_json)
-  return status
+  data = getdata(filename)
+  if data["names"].has_key?(name)
+    number = data["names"][name]
+    data["names"].delete(name)
+    data["numbers"].delete(number)
+    data["namelist"].delete(name)
+    data["numlist"].delete(number)
+    data.write_json(filename)
+    return "Removed #{name}"
+  else
+    return "#{name} not found"
+  end
 end
 
-# Main Method, processing args
-def main
+def change name, number, filename
+  if data["names"].has_key?(name)
+    remove(name, filename)
+    add(name, number, filename)
+    return "Updated #{name} with #{number}"
+  else
+    return "#{name} not found"
+  end
+end
+
+def lookup patt, filename
+  data = getdata(filename)
+  pattern = Regexp.new(patt)
+  matches = data["namelist"].select { |name| name =~ pattern }
+  return "No matches found" if matches.empty?
+  s = "Matches for #{patt}:\n-------------------------------\n"
+  matches.each { |name| s += "#{name} : #{data['names'][name]}\n" }
+  return s
+end
+
+def reverse_lookup number, filename
+  data = getdata(filename)
+  return "#{number} : #{data["numbers"][number]}"
+end
+
+def process_request
+  # Parse the arguments
   args = []
   ARGV.each do |item|
     args.push(item)
@@ -149,21 +84,24 @@ def main
 
   puts "\n"
 
+  # Ensure that an actual command was called
   commands = ["create", "lookup", "change", "add", "remove", "reverse"]
   if not commands.include?(args[0])
     puts "Invalid argument, valid arguments are: (create lookup change add remove reverse)\n\n"
     return -1
   end
 
+  # If the command involves the name as the second argument, titleize
+  # the name for consistency
   namecommands = ["lookup", "add", "change", "remove"]
   if namecommands.include?(args[0])
-    args[1] = args[1].capitalize
+    args[1] = args[1].titleize
   end
 
   # If there is only one .pb file in the current directory, that is the
-  # implicit argument
+  # implicit argument for the file
   if !(args[-1] =~ /pb/)
-    files = Dir.entries(".").select { |f| f =~ /pb/ }
+    files = Dir.entries(".").select { |f| f =~ /pb$/ }
     if files.length == 1
       args.push(files[0])
     elsif files.length > 1
@@ -175,6 +113,7 @@ def main
     end
   end
 
+  # Ensure that the right number of arguments are passed for each command
   num_args = {"create"=> 2, "lookup"=> 3, "add"=> 4, "remove"=> 3, "reverse"=> 3, "change"=> 4}
   needed_args = num_args[args[0]]
   if args.count != needed_args
@@ -186,8 +125,8 @@ def main
     return -1
   end
 
-  # Check for file existence, if the .pb is not found in the current directory
-  # output an error and halt the program... unless the action is create
+  # For any action other than create, ensure that the .pb file exists in
+  # the directory
   if args[0] != "create"
     if !(File.file?(args[-1]))
       puts "#{args[-1]} not found in the current directory, check for typos or create it using $ phonebook create <filename>\n\n"
@@ -195,10 +134,10 @@ def main
     end
   end
 
-  # Filename exists
+  # If all the validations have passed, process the request
   case args[0]
   when "create"
-    puts createpb(args[1])
+    puts create(args[1])
   when "lookup"
     puts lookup(args[1], args[2])
   when "add"
@@ -214,4 +153,4 @@ def main
   puts "\n"
 end
 
-main
+process_request
