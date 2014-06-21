@@ -17,7 +17,7 @@ module Phonebook
   # Creates a file of the given name to store the phonebook
   def create filename
     if not File.file?(filename)
-      data = {"names" => {}, "numbers" => {}}
+      data = {}
       data.write_json_to_file(filename)
       return "Success: Created #{filename}"
     else
@@ -28,11 +28,10 @@ module Phonebook
   # Adds an entry to the phonebook with the given name and number
   def add name, number, filename
     data = getdata(filename)
-    uniquename = !data["names"].has_key?(name)
-    uniquenum = !data["numbers"].has_key?(number)
+    uniquename = !data.has_key?(name)
+    uniquenum = !data.each_value.include?(number)
     if uniquename and uniquenum
-      data["names"][name] = number
-      data["numbers"][number] = name
+      data[name] = number
       data.write_json_to_file(filename)
       return "Success: Added #{name} - #{number}"
     else
@@ -47,10 +46,8 @@ module Phonebook
   # Removes the entry for the given name from all data structures
   def remove name, filename
     data = getdata(filename)
-    if data["names"].has_key?(name)
-      number = data["names"][name]
-      data["names"].delete(name)
-      data["numbers"].delete(number)
+    if data.has_key?(name)
+      data.delete(name)
       data.write_json_to_file(filename)
       return "Success: Removed #{name}"
     else
@@ -60,7 +57,7 @@ module Phonebook
 
   # Changes the entry for the given name to the new values
   def change name, number, filename
-    if data["names"].has_key?(name)
+    if data.has_key?(name)
       remove(name, filename)
       add(name, number, filename)
       return "Success: Updated #{name} with #{number}"
@@ -74,20 +71,20 @@ module Phonebook
   def lookup patt, filename
     data = getdata(filename)
     pattern = Regexp.new(patt)
-    matches = data["names"].each_key.select { |name| name =~ pattern }
+    matches = data.each_key.select { |name| name =~ pattern }
     return "No matches found for #{patt}" if matches.empty?
     s = "Matches for #{patt}:\n-------------------------------\n"
-    matches.each { |name| s += "#{name} : #{data['names'][name]}\n" }
+    matches.each { |name| s += "#{name} : #{data[name]}\n" }
     return s
   end
 
   def reverse_lookup numpatt, filename
     data = getdata(filename)
     pattern = Regexp.new(numpatt)
-    matches = data["names"].each_value.select { |num| num =~ pattern }
+    matches = data.each_value.select { |num| num =~ pattern }
     return "No matches found for #{numpatt}" if matches.empty?
     s = "Matches for #{numpatt}:\n-------------------------------\n"
-    matches.each { |num| s += "#{data["names"].key(num)} : #{num}\n" }
+    matches.each { |num| s += "#{data.key(num)} : #{num}\n" }
     return s
   end
 

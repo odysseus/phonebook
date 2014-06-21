@@ -13,10 +13,11 @@ filename = "hs.pb"
 # Remove the current file
 if File.file?(filename)
   `rm #{filename}`
-  `ruby phonebookexec.rb create #{filename}`
 end
 
+`ruby phonebookexec.rb create #{filename}`
+
 1000.times do
-  `ruby phonebookexec.rb add "#{names[rand(names.length)]}_#{names[rand(names.length)]}" "#{rand(1000000)}" #{filename}`
+  `ruby phonebookexec.rb add "#{names[rand(names.length)]}_#{names[rand(names.length)]}" "#{rand(1_000_000_000)}" #{filename}`
 end
 
