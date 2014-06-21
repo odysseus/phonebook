@@ -3,7 +3,7 @@ require 'json'
 
 # Class method to enable easy writing of a hash to a JSON file
 class Hash
-  def write_json filename
+  def write_json_to_file filename
     File.write(filename, self.to_json)
   end
 end
@@ -17,8 +17,8 @@ module Phonebook
   # Creates a file of the given name to store the phonebook
   def create filename
     if not File.file?(filename)
-      data = {"names" => {}, "numbers" => {}, "namelist" => [], "numlist" => []}
-      data.write_json(filename)
+      data = {"names" => {}, "numbers" => {}}
+      data.write_json_to_file(filename)
       return "Success: Created #{filename}"
     else
       return "Error: File already exists, delete file or use add / remove / change to modify"
@@ -32,10 +32,8 @@ module Phonebook
     uniquenum = !data["numbers"].has_key?(number)
     if uniquename and uniquenum
       data["names"][name] = number
-      data["namelist"].push(name)
-      data["numlist"].push(number)
       data["numbers"][number] = name
-      data.write_json(filename)
+      data.write_json_to_file(filename)
       return "Success: Added #{name} - #{number}"
     else
       if not uniquename
@@ -53,9 +51,7 @@ module Phonebook
       number = data["names"][name]
       data["names"].delete(name)
       data["numbers"].delete(number)
-      data["namelist"].delete(name)
-      data["numlist"].delete(number)
-      data.write_json(filename)
+      data.write_json_to_file(filename)
       return "Success: Removed #{name}"
     else
       return "Error: #{name} not found"
@@ -78,7 +74,7 @@ module Phonebook
   def lookup patt, filename
     data = getdata(filename)
     pattern = Regexp.new(patt)
-    matches = data["namelist"].select { |name| name =~ pattern }
+    matches = data["names"].each_key.select { |name| name =~ pattern }
     return "No matches found for #{patt}" if matches.empty?
     s = "Matches for #{patt}:\n-------------------------------\n"
     matches.each { |name| s += "#{name} : #{data['names'][name]}\n" }
