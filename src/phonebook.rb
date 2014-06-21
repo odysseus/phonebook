@@ -81,14 +81,14 @@ module Phonebook
     return s
   end
 
-  # Looks up a name given a phone number
-  def reverse_lookup number, filename
+  def reverse_lookup numpatt, filename
     data = getdata(filename)
-    if data["numbers"].has_key?(number)
-      return "#{number} : #{data["numbers"][number]}"
-    else
-      return "No matches found for #{number}"
-    end
+    pattern = Regexp.new(numpatt)
+    matches = data["names"].each_value.select { |num| num =~ pattern }
+    return "No matches found for #{numpatt}" if matches.empty?
+    s = "Matches for #{numpatt}:\n-------------------------------\n"
+    matches.each { |num| s += "#{data["names"].key(num)} : #{num}\n" }
+    return s
   end
 
   # Parses the arguments, cleans and validates them, before finally
